@@ -11,7 +11,6 @@ seq_eval = dat_eval.iloc[:, 6:]
 # print(dat_valid.iloc[0:3, 0:10])
 # print(dat_eval.iloc[:3, :10])
 
-
 # note: rows{dat_valid} == rows{dat_eval}
 def create_data_set(dat, start=[], x_period=[], sample_size=1000, resample=False):
     if len(x_period) == 0:
