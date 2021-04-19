@@ -20,11 +20,13 @@ class Norm(nn.Module):
         super().__init__()
         self.size = dim
         # create two learnable parameters to calibrate normalisation
-        self.alpha = nn.Parameter(torch.ones(dim))
-        self.bias = nn.Parameter(torch.zeros(dim))
+        self.alpha = nn.Parameter(torch.ones((dim, 1)))
+        self.bias = nn.Parameter(torch.zeros((dim, 1)))
         self.eps = eps
 
     def forward(self, x):
-        norm = self.alpha * (x - x.mean(dim=-2, keepdim=True)) \
-               / (x.std(dim=-2, keepdim=True) + self.eps) + self.bias
+        # print(x.size(), self.size)
+        avg = x.mean(dim=-2, keepdim=True)
+        std = x.std(dim=-2, keepdim=True) + self.eps
+        norm = self.alpha * (x - avg) / std + self.bias
         return norm

@@ -2,7 +2,7 @@ import torch, math
 import torch.nn as nn
 import torch.nn.functional as F
 
-CONST_CAT_DIM = 3049+7+3+10+3
+CONST_CAT_DIM= 3049+7+3+10+3  # item + depart + cat + store + state
 
 
 def _attention(q, k, v, d_k, mask=None, dropout=None):
@@ -15,7 +15,7 @@ def _attention(q, k, v, d_k, mask=None, dropout=None):
     if dropout is not None:
         scores = dropout(scores)
     # output dim = (batch, heads / channel / embed dim, seq_len)
-    output = torch.matmul(scores, v.tranpose(-2, -1))
+    output = torch.matmul(scores, v.transpose(-2, -1))
     return output
 
 
@@ -37,11 +37,12 @@ class Attention(nn.Module):
         self.q_conv = nn.Conv1d(c_in, c_out, kernel_size=k, stride=1, bias=False)
         self.v_conv = nn.Conv1d(c_in, c_out, kernel_size=k, stride=1, bias=False)
         self.k_conv = nn.Conv1d(c_in, c_out, kernel_size=k, stride=1, bias=False)
-        self.dropout = dropout
+        self.dropout = nn.Dropout(dropout)
         self.out = nn.Linear(c_out, c_out)
 
     def forward(self, q, k, v, mask=None):
-        batch_size = q.size(0)
+        # batch_size = q.size(0)
+        # print(q.size())
         # reflection padding input sequence, 2nd part of input
         # get seq embedding
         q_seq_embed = self.q_conv(self.padding(q))
@@ -62,6 +63,7 @@ class CategoricalEmbedding(nn.Module):
 
     def forward(self, x):
         batch_size = x.size(0)
+        # print(x.size())
         # get cat embedding and reshape it
         x_cat_embed = self.cat_embed(x)
         return x_cat_embed.view(batch_size, self.h, self.seq_len)

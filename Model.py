@@ -17,11 +17,15 @@ class Transformer(nn.Module):
         super().__init__()
         self.encoder = CatEncoder(seq_len, channels, k, dropout)
         self.decoder = CatDecoder(seq_len, channels, k, dropout)
-        self.out = nn.Conv1d(channels[-1], 1, kernel_size=channels[-1])
+        self.out = nn.Conv1d(channels[-1], 1, stride=1, kernel_size=1)
 
-    def forward(self, x, tar, src_mask, tar_mask):
-        e_output = self.encoder(x, src_mask)
-        d_output = self.decoder(tar, e_output, src_mask, tar_mask)
+    def forward(self, cat, x, tar, src_mask, tar_mask):
+        # print("cat size: ", cat.size())
+        # print("x size: ", x.size())
+        # print("tar size: ", tar.size())
+        e_output = self.encoder([cat, x], src_mask)
+        d_output = self.decoder([cat, tar], e_output, src_mask, tar_mask)
+        # print(d_output.size())
         # predict the full sequence using d_output: (batch, c_out, seq_len)
-        output = F.relu(self.out(d_output))
+        output = F.selu(self.out(d_output))
         return output
