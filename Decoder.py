@@ -15,7 +15,7 @@ class DecoderLayer(nn.Module):
         self.norm2 = Norm(c_out)
         self.norm3 = Norm(c_out)
         self.norm4 = Norm(c_out)
-        self.attn1 = Attention(seq_len, c_in, c_out, k, dropout)
+        self.attn1 = Attention(seq_len, c_out, c_out, k, dropout)
         self.attn2 = Attention(seq_len, c_out, c_out, k, dropout)
         self.ff = FeedForward(c_out, c_out)
         self.dropout1 = nn.Dropout(dropout)
@@ -25,13 +25,16 @@ class DecoderLayer(nn.Module):
         self.broadcast2 = nn.Linear(seq_len, seq_len)
 
     def forward(self, x, e_output, src_mask, tar_mask):
+        if len(x.size()) == 2:
+            x.unsqueeze_(0)
+            x.transpose_(0, 1)
         assert self.h == e_output.size(1)
         x2 = self.norm1(self.broadcast1(x))
         x = x + self.dropout1(self.attn1(x2, x2, x2, tar_mask))
         x2 = self.norm2(x)
         x = x + self.dropout2(self.attn1(x2, e_output, e_output, src_mask))
         x2 = self.norm3(x)
-        x = x + self.dropout3(self.ff(x2))
+        x = x + self.dropout3(self.ff(x2.transpose(-1, -2))).transpose(-1, -2)
         # dim = (batch, c_out, seq_len)
         # broadcast earlier feature vector to later time points
         x = x + F.relu(self.broadcast2(x))
@@ -49,12 +52,12 @@ class CatDecoder(nn.Module):
         self.norm = Norm(channels[-1])
 
     def forward(self, x, e_output, src_mask, tar_mask):
-        cat_, x_ = x[:, :CONST_CAT_DIM], x[:, CONST_CAT_DIM:]
+        cat_, x_ = x[0], x[1]
         x_cat = self.cat_embed(cat_)
         x_ = self.layers[0](x_, e_output, src_mask, tar_mask) + x_cat
         for i in range(1, len(self.layers)):
             x_ = self.layers[i](x_, e_output, src_mask, tar_mask)
-        return self.norm(x)
+        return self.norm(x_)
 
 
 

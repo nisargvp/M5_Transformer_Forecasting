@@ -31,14 +31,21 @@ def get_predictor(dat, start):
 def create_data_set(dat, start):
 
     n, m = dat.shape
+    # n = 10  # generate a small dataset for testing
     x = []
+    cat = []
     for i in range(n):
-        # print(i)
+        print(i)
         cnt = (m - start[i]) // CONST_LEN
+        cat_vec = dat.iloc[i, 1:6].tolist()
         for k in range(cnt-4): # 4=5-1
-            x.append(dat.iloc[i, (-(k+5)*CONST_LEN):(-k*CONST_LEN)].tolist())
-
-    output_x = pd.DataFrame(x)
+            # print(sum(dat.iloc[i,:].isnull()))
+            if k: x.append(dat.iloc[i, (-(k+5)*CONST_LEN):(-k*CONST_LEN)].tolist())
+            else: x.append(dat.iloc[i, (-5*CONST_LEN):].tolist())
+            cat.append(cat_vec.copy())
+    # print(cat[0], len(cat))
+    # print(x[0], len(x))
+    output_x = pd.concat([pd.DataFrame(cat), pd.DataFrame(x)], axis=1)
     return output_x
 
 
@@ -49,17 +56,18 @@ if x is not None:
 else:
     print("Error: x is None.")
 
-x_valid = get_predictor(dat=dat_valid, start=start_ls)
-x_eval = get_predictor(dat=dat_eval, start=start_ls)
-if x_valid is not None:
-    x_valid.to_csv("valid_X_pred.csv", index=False)
-else:
-    print("Error: x_valid is None.")
+if False:
+    x_valid = get_predictor(dat=dat_valid, start=start_ls)
+    x_eval = get_predictor(dat=dat_eval, start=start_ls)
+    if x_valid is not None:
+        x_valid.to_csv("valid_X_pred.csv", index=False)
+    else:
+        print("Error: x_valid is None.")
 
-if x_eval is not None:
-    x_eval.to_csv("valid_X_eval.csv", index=False)
-else:
-    print("Error: x_eval is None.")
+    if x_eval is not None:
+        x_eval.to_csv("valid_X_eval.csv", index=False)
+    else:
+        print("Error: x_eval is None.")
 
 
 

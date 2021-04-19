@@ -11,17 +11,22 @@ class EncoderLayer(nn.Module):
         super().__init__()
         self.norm1 = Norm(c_out)
         self.norm2 = Norm(c_out)
-        self.attn = Attention(seq_len, c_in=c_in, c_out=c_out, k=k)
-        self.broadcast = nn.Conv1d(c_in, c_out, kernel_size=1, bias=False)
+        self.attn = Attention(seq_len, c_in=c_out, c_out=c_out, k=k)
+        self.broadcast = nn.Conv1d(c_in, c_out, kernel_size=1, stride=1, bias=False)
         self.ff = FeedForward(c_out, c_out)
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
 
     def forward(self, x, mask):
+        if len(x.size()) == 2:
+            x.unsqueeze_(0)
+            x.transpose_(0, 1)
+        # print("x size: ", x.size())
         x = self.norm1(self.broadcast(x))
         x = x + self.dropout1(self.attn(x, x, x, mask))
         x2 = self.norm2(x)
-        x = x + self.dropout2(self.ff(x2))
+        # print(x2.size())
+        x = x + self.dropout2(self.ff(x2.transpose(-1, -2))).transpose(-1, -2)
         return x
 
 
@@ -36,12 +41,13 @@ class CatEncoder(nn.Module):
         self.norm = Norm(channels[-1])
 
     def forward(self, x, mask):
-        cat_, x_ = x[:, :CONST_CAT_DIM], x[:, CONST_CAT_DIM:]
+        cat_, x_ = x[0], x[1]
         x_cat = self.cat_embed(cat_)
+        # print(x_cat.size())
         x_ = self.layers[0](x_, mask) + x_cat
         for i in range(1, len(self.layers)):
             x_ = self.layers[i](x_, mask)
-        return self.norm(x)
+        return self.norm(x_)
 
 
 
