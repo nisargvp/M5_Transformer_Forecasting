@@ -34,9 +34,9 @@ class Attention(nn.Module):
         # kernel size used for local + causal convolution
         self.k = k
         # input is padded by reflection
-        self.q_conv = nn.Conv1d(c_in, c_out, kernel_size=k, strid=1, bias=False)
-        self.v_conv = nn.Conv1d(c_in, c_out, kernel_size=k, strid=1, bias=False)
-        self.k_conv = nn.Conv1d(c_in, c_out, kernel_size=k, strid=1, bias=False)
+        self.q_conv = nn.Conv1d(c_in, c_out, kernel_size=k, stride=1, bias=False)
+        self.v_conv = nn.Conv1d(c_in, c_out, kernel_size=k, stride=1, bias=False)
+        self.k_conv = nn.Conv1d(c_in, c_out, kernel_size=k, stride=1, bias=False)
         self.dropout = dropout
         self.out = nn.Linear(c_out, c_out)
 

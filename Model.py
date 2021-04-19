@@ -14,9 +14,10 @@ For the initial input, the dim = (batch, seq_len), where the second dim is missi
 
 class Transformer(nn.Module):
     def __init__(self, seq_len, channels=[5,5,5], k=5, dropout=0.1):
+        super().__init__()
         self.encoder = CatEncoder(seq_len, channels, k, dropout)
         self.decoder = CatDecoder(seq_len, channels, k, dropout)
-        self.out = nn.Conv1d(channels[-1], 1)
+        self.out = nn.Conv1d(channels[-1], 1, kernel_size=channels[-1])
 
     def forward(self, x, tar, src_mask, tar_mask):
         e_output = self.encoder(x, src_mask)
