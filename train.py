@@ -23,10 +23,10 @@ model.to(device)
 # will implement data loader later
 loss_train_history = []
 loss_valid_history = []
-epoch = 10
+epoch = 200
 optimizer = Adam(model.parameters(), lr=3e-4)
 # create_small_dataset(data_file="valid_X.csv", csv_name="small_X.csv")
-dataLoader = DataLoader('small_X.csv', batch_size=8, cat_exist=True, split=(90, 5, 5))
+dataLoader = DataLoader('valid_X.csv', batch_size=512, cat_exist=False, split=(90, 5, 5))
 
 src_mask, tar_mask = get_mask(4 * CONST_LEN, random=False)
 # send src_mask, tar_mask to GPU
@@ -34,7 +34,7 @@ src_mask, tar_mask = src_mask.to(device), tar_mask.to(device)
 
 for i in range(epoch):
 
-    if i and i % 500 == 0:
+    if i and i % 50 == 0:
         checkpoint = {'model': Transformer(seq_len, channels, k, dropout),
                       'state_dict': model.state_dict(),
                       'optimizer' : optimizer.state_dict()}
