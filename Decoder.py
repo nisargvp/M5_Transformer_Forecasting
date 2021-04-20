@@ -47,8 +47,8 @@ class CatDecoder(nn.Module):
         self.cat_embed = CategoricalEmbedding(seq_len, channels[0], dropout)
         self.layers = [None]*len(channels)
         channels = [1] + channels
-        for i in range(1, len(channels)):
-            self.layers[i-1] = DecoderLayer(seq_len, c_in=channels[i-1], c_out=channels[i], k=k, dropout=dropout)
+        self.layers = nn.ModuleList([DecoderLayer(seq_len, c_in=channels[i-1], c_out=channels[i],
+                                                  k=k, dropout=dropout) for i in range(1, len(channels))])
         self.norm = Norm(channels[-1])
 
     def forward(self, x, e_output, src_mask, tar_mask):

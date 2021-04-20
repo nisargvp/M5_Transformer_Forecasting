@@ -29,6 +29,8 @@ optimizer = Adam(model.parameters(), lr=3e-4)
 dataLoader = DataLoader('small_X.csv', batch_size=8, cat_exist=True, split=(90, 5, 5))
 
 src_mask, tar_mask = get_mask(4 * CONST_LEN, random=False)
+# send src_mask, tar_mask to GPU
+src_mask, tar_mask = src_mask.to(device), tar_mask.to(device)
 
 for i in range(epoch):
 
@@ -65,7 +67,7 @@ for i in range(epoch):
         model.eval()
         cat, x, y = dataLoader.get_validation_batch()
         # send tensors to GPU
-        cat, x, y = cat.to(device), src.to(device), tar.to(device)
+        cat, x, y = cat.to(device), x.to(device), y.to(device)
         valid_y = model.forward(cat, x, y, src_mask, tar_mask)
         loss_valid = compute_loss(valid_y, y, tar_mask)
 
