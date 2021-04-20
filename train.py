@@ -6,6 +6,9 @@ from torch.optim import Adam
 from Model import Transformer
 from trainOps import compute_loss, DataLoader, get_mask, create_small_dataset
 
+# set up GPU
+device = torch.device("cuda:0")
+
 # model configuration
 CONST_LEN = 28
 seq_len = 28 * 4
@@ -13,21 +16,25 @@ channels = [5, 5, 5]
 k = 5
 dropout = 0.2
 model = Transformer(seq_len, channels, k, dropout)
+# send model to GPU
+model.to(device)
 
 # assume that data is loaded ...
 # will implement data loader later
 loss_train_history = []
 loss_valid_history = []
-epoch = 10
+epoch = 200
 optimizer = Adam(model.parameters(), lr=3e-4)
 # create_small_dataset(data_file="valid_X.csv", csv_name="small_X.csv")
-dataLoader = DataLoader('valid_X.csv', batch_size=256, cat_exist=False, split=(90, 5, 5))
+dataLoader = DataLoader('valid_X.csv', batch_size=512, cat_exist=False, split=(90, 5, 5))
 
 src_mask, tar_mask = get_mask(4 * CONST_LEN, random=False)
+# send src_mask, tar_mask to GPU
+src_mask, tar_mask = src_mask.to(device), tar_mask.to(device)
 
 for i in range(epoch):
 
-    if i and i % 500 == 0:
+    if i and i % 50 == 0:
         checkpoint = {'model': Transformer(seq_len, channels, k, dropout),
                       'state_dict': model.state_dict(),
                       'optimizer' : optimizer.state_dict()}
@@ -38,6 +45,8 @@ for i in range(epoch):
     # set model training state
     model.train()
     for cat, src, tar in dataLoader.get_training_batch():
+        # send tensors to GPU
+        cat, src, tar = cat.to(device), src.to(device), tar.to(device)
         # print(src.size())
         out = model.forward(cat, src, tar, src_mask, tar_mask)
         # print(out.size())
@@ -57,6 +66,8 @@ for i in range(epoch):
     with torch.no_grad():
         model.eval()
         cat, x, y = dataLoader.get_validation_batch()
+        # send tensors to GPU
+        cat, x, y = cat.to(device), x.to(device), y.to(device)
         valid_y = model.forward(cat, x, y, src_mask, tar_mask)
         loss_valid = compute_loss(valid_y, y, tar_mask)
 

@@ -12,7 +12,7 @@ class EncoderLayer(nn.Module):
         self.norm1 = Norm(c_out)
         self.norm2 = Norm(c_out)
         self.attn = Attention(seq_len, c_in=c_out, c_out=c_out, k=k)
-        self.broadcast = nn.Conv1d(c_in, c_out, kernel_size=1, stride=1, bias=False)
+        self.broadcast = nn.Conv1d(c_in, c_out, kernel_size=1, stride=1)
         self.ff = FeedForward(c_out, c_out)
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
@@ -36,8 +36,8 @@ class CatEncoder(nn.Module):
         self.cat_embed = CategoricalEmbedding(seq_len, channels[0], dropout)
         self.layers = [None] * len(channels)
         channels = [1] + channels
-        for i in range(1, len(channels)):
-            self.layers[i-1] = EncoderLayer(seq_len,  c_in=channels[i-1], c_out=channels[i], k=k, dropout=dropout)
+        self.layers = nn.ModuleList([EncoderLayer(seq_len,  c_in=channels[i-1], c_out=channels[i],
+                                                  k=k, dropout=dropout) for i in range(1, len(channels))])
         self.norm = Norm(channels[-1])
 
     def forward(self, x, mask):

@@ -11,7 +11,7 @@ def compute_loss(y, pred, mask):
     # print(y.size())
     # print(pred.size())
     diff = y - pred
-    mask = 1 - torch.Tensor(mask).unsqueeze(-1)
+    mask = 1 - mask.unsqueeze(-1)
     return torch.sum(torch.matmul(diff**2, mask)) / (torch.sum(mask) * batch)
 
 
