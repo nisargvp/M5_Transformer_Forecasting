@@ -12,9 +12,9 @@ device = torch.device("cuda:0")
 # model configuration
 CONST_LEN = 28
 seq_len = 28 * 4
-channels = [5, 5, 5]
+channels = [8, 8, 8]
 k = 5
-dropout = 0.2
+dropout = 0.3
 model = Transformer(seq_len, channels, k, dropout)
 # send model to GPU
 model.to(device)
@@ -26,15 +26,15 @@ loss_valid_history = []
 epoch = 200
 optimizer = Adam(model.parameters(), lr=3e-4)
 # create_small_dataset(data_file="valid_X.csv", csv_name="small_X.csv")
-dataLoader = DataLoader('valid_X.csv', batch_size=512, cat_exist=False, split=(90, 5, 5))
+dataLoader = DataLoader('valid_X.csv', batch_size=256, cat_exist=False, split=(90, 5, 5))
 
 src_mask, tar_mask = get_mask(4 * CONST_LEN, random=False)
 # send src_mask, tar_mask to GPU
 src_mask, tar_mask = src_mask.to(device), tar_mask.to(device)
 
-for i in range(epoch):
+for k in range(epoch):
 
-    if i and i % 50 == 0:
+    if k and k % 50 == 0:
         checkpoint = {'model': Transformer(seq_len, channels, k, dropout),
                       'state_dict': model.state_dict(),
                       'optimizer' : optimizer.state_dict()}
@@ -76,7 +76,7 @@ for i in range(epoch):
 
     loss_valid_history.append(np.mean(loss_valid))
 
-    print("epoch:", i,
+    print("epoch:", k,
           "training loss = ", loss_train_history[-1],
           "validation loss = ", loss_valid_history[-1])
 
