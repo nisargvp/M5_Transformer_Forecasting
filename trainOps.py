@@ -6,6 +6,15 @@ CONST_LEN = 28
 CONST_CAT_DIM = 3049+7+3+10+3
 
 
+def check_tensor(tensor_ls):
+    for ts in tensor_ls:
+        if torch.isnan(ts).sum():
+            raise Exception("tensor is nan!")
+        elif torch.isinf(ts).sum():
+            raise Exception("tensor is inf")
+    return "okay"
+
+
 def compute_loss(y, pred, mask):
     batch = y.size(0)
     # print(y.size())
@@ -26,7 +35,7 @@ def get_mask(seq_len=4*CONST_LEN, random=False):
     return torch.Tensor(src_mask), torch.Tensor(tar_mask)
 
 
-def create_small_dataset(data_file, size=1000, csv_name="small_X.csv"):
+def create_small_dataset(data_file, csv_name="small_X.csv", size=1000):
     dat = pd.read_csv(data_file)
     n, _ = dat.shape
     # categorical variables, numerical variables
@@ -48,8 +57,8 @@ class DataLoader:
         self.batch = self.n // batch_size
         self.train_n = round(self.batch * split[0] / sum(split))
         # print("train_n = ", self.train_n)
-        self.test_n = round(self.batch * split[2] / sum(split))
-        self.valid_n = self.batch - self.train_n - self.test_n
+        self.valid_n = round(self.batch * split[1] / sum(split))
+        self.test_n = self.batch - self.train_n - self.valid_n
         # random shuffle dataset rows
         # then do train/valid/test split
         # categorical variables, numerical variables
@@ -65,6 +74,7 @@ class DataLoader:
         self.train_dat = self.dat.iloc[:self.train_n*batch_size, :]
         mean = self.train_dat.mean(axis=0)
         std = self.train_dat.std(axis=0)
+        std.replace(0.0, 1.0, inplace=True)
         self.mean = mean.tolist()
         self.std = std.tolist()
         self.train_dat = (self.train_dat - mean) / std
@@ -97,11 +107,19 @@ class DataLoader:
             yield torch.Tensor(l.to_numpy()), torch.Tensor(x.to_numpy()), torch.Tensor(y.to_numpy())
 
     def get_validation_batch(self):
-        x = self.valid_dat.iloc[:, :(4*CONST_LEN)]
-        y = self.valid_dat.iloc[:, CONST_LEN:]
-        return torch.Tensor(self.valid_cat.to_numpy()), torch.Tensor(x.to_numpy()), torch.Tensor(y.to_numpy())
+
+        for i in range(1, self.valid_n):
+            l = self.valid_cat.iloc[((i - 1) * self.batch_size):(i * self.batch_size), :]
+            x = self.valid_dat.iloc[((i - 1) * self.batch_size):(i * self.batch_size), :(4 * CONST_LEN)]
+            y = self.valid_dat.iloc[((i - 1) * self.batch_size):(i * self.batch_size), CONST_LEN:]
+            # print(l.shape, x.shape, y.shape)
+            yield torch.Tensor(l.to_numpy()), torch.Tensor(x.to_numpy()), torch.Tensor(y.to_numpy())
 
     def get_test_batch(self):
-        x = self.test_dat.iloc[:, :(4 * CONST_LEN)]
-        y = self.test_dat.iloc[:, CONST_LEN:]
-        return torch.Tensor(self.test_cat.to_numpy()), torch.Tensor(x.to_numpy()), torch.Tensor(y.to_numpy())
+
+        for i in range(1, self.test_n):
+            l = self.test_cat.iloc[((i - 1) * self.batch_size):(i * self.batch_size), :]
+            x = self.test_dat.iloc[((i - 1) * self.batch_size):(i * self.batch_size), :(4 * CONST_LEN)]
+            y = self.test_dat.iloc[((i - 1) * self.batch_size):(i * self.batch_size), CONST_LEN:]
+            # print(l.shape, x.shape, y.shape)
+            yield torch.Tensor(l.to_numpy()), torch.Tensor(x.to_numpy()), torch.Tensor(y.to_numpy())

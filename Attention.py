@@ -30,6 +30,9 @@ class Attention(nn.Module):
         # dimension per head
         self.h = c_out
         # reflection padding, only do reflection padding on the left (causal)
+        # 04/20/2021 a bug that hasn't been fixed
+        # ref: https://github.com/pytorch/pytorch/issues/49601
+        # ref: https://github.com/pytorch/pytorch/issues/55222
         self.padding = nn.ReflectionPad1d((k-1, 0))
         # kernel size used for local + causal convolution
         self.k = k
@@ -46,8 +49,11 @@ class Attention(nn.Module):
         # reflection padding input sequence, 2nd part of input
         # get seq embedding
         q_seq_embed = self.q_conv(self.padding(q))
+        # q_seq_embed = self.q_conv(q)
         v_seq_embed = self.v_conv(self.padding(k))
+        # v_seq_embed = self.v_conv(k)
         k_seq_embed = self.k_conv(self.padding(v))
+        # k_seq_embed = self.k_conv(v)
         # scores dim = (batch, seq_len, heads)
         scores = _attention(q_seq_embed, k_seq_embed, v_seq_embed, self.h, mask, self.dropout)
 
