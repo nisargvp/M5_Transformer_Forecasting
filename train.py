@@ -44,7 +44,7 @@ for i in range(epoch):
     dataLoader.shuffle()
     # set model training state
     model.train()
-    for i, cat, src, tar in enumerate(dataLoader.get_training_batch()):
+    for i, (cat, src, tar) in enumerate(dataLoader.get_training_batch()):
         print("train mini-batch ", i)
         # send tensors to GPU
         cat, src, tar = cat.to(device), src.to(device), tar.to(device)
@@ -67,7 +67,7 @@ for i in range(epoch):
     loss_valid = []
     with torch.no_grad():
         model.eval()
-        for i, cat, x, y in enumerate(dataLoader.get_validation_batch()):
+        for i, (cat, x, y) in enumerate(dataLoader.get_validation_batch()):
             print("validation mini-batch ", i)
             # send tensors to GPU
             cat, x, y = cat.to(device), x.to(device), y.to(device)
