@@ -4,29 +4,29 @@ import matplotlib.pyplot as plt
 
 from torch.optim import Adam
 from Model import Transformer
-from trainOps import compute_loss, DataLoader, get_mask, create_small_dataset
+from trainOps import compute_loss, DataLoader, get_mask, create_small_dataset, check_tensor
 
+# torch.autograd.set_detect_anomaly(True)
 # set up GPU
-device = torch.device("cuda:0")
+device = torch.device("cpu")
 
 # model configuration
 CONST_LEN = 28
 seq_len = 28 * 4
-channels = [8, 8, 8]
+channels = [5, 5, 5]
 k = 5
 dropout = 0.3
 model = Transformer(seq_len, channels, k, dropout)
 # send model to GPU
 model.to(device)
 
-# assume that data is loaded ...
-# will implement data loader later
+# training code
 loss_train_history = []
 loss_valid_history = []
 epoch = 200
 optimizer = Adam(model.parameters(), lr=3e-4)
 # create_small_dataset(data_file="valid_X.csv", csv_name="small_X.csv")
-dataLoader = DataLoader('valid_X.csv', batch_size=256, cat_exist=False, split=(90, 5, 5))
+dataLoader = DataLoader('small_X.csv', batch_size=16, cat_exist=True, split=(90, 5, 5))
 
 src_mask, tar_mask = get_mask(4 * CONST_LEN, random=False)
 # send src_mask, tar_mask to GPU
@@ -45,11 +45,13 @@ for k in range(epoch):
     # set model training state
     model.train()
     for i, (cat, src, tar) in enumerate(dataLoader.get_training_batch()):
-        print("train mini-batch ", i)
+        # print("train mini-batch ", i)
         # send tensors to GPU
+        print("train - check input: ", check_tensor([cat, src, tar]))
         cat, src, tar = cat.to(device), src.to(device), tar.to(device)
         # print(src.size())
         out = model.forward(cat, src, tar, src_mask, tar_mask)
+        print("train - check out: ", check_tensor([out]))
         # print(out.size())
         loss = compute_loss(out, tar, tar_mask)
 
@@ -68,11 +70,14 @@ for k in range(epoch):
     with torch.no_grad():
         model.eval()
         for i, (cat, x, y) in enumerate(dataLoader.get_validation_batch()):
-            print("validation mini-batch ", i)
+            # print("validation mini-batch ", i)
             # send tensors to GPU
+            print("validation - check input: ", check_tensor([cat, src, tar]))
             cat, x, y = cat.to(device), x.to(device), y.to(device)
             valid_y = model.forward(cat, x, y, src_mask, tar_mask)
-            loss_valid.append(compute_loss(valid_y, y, tar_mask).item())
+            valid_loss = compute_loss(valid_y, y, tar_mask)
+            print("train - check out: ", check_tensor([valid_loss]))
+            loss_valid.append(valid_loss.item())
 
     loss_valid_history.append(np.mean(loss_valid))
 

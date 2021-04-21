@@ -6,6 +6,15 @@ CONST_LEN = 28
 CONST_CAT_DIM = 3049+7+3+10+3
 
 
+def check_tensor(tensor_ls):
+    for ts in tensor_ls:
+        if torch.isnan(ts).sum():
+            raise Exception("tensor is nan!")
+        elif torch.isinf(ts).sum():
+            raise Exception("tensor is inf")
+    return "okay"
+
+
 def compute_loss(y, pred, mask):
     batch = y.size(0)
     # print(y.size())
