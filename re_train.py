@@ -16,15 +16,23 @@ seq_len = 28 * 4
 channels = [5, 5, 5]
 conv_k = 5
 dropout = 0.3
-model = Transformer(seq_len, channels, conv_k, dropout)
+
+# load model
+# replace x by the epoch number
+checkpoint = torch.load('10_checkpoint.pth')
+model = checkpoint["model"]
+# load model from the checkpoint
+model.load_state_dict(checkpoint["state_dict"])
 # send model to GPU
 model.to(device)
 
+# load optimizer from the checkpoint
+optimizer = Adam(model.parameters(), lr=3e-4)
+optimizer.load_state_dict(checkpoint["optimizer"])
 # training code
 loss_train_history = []
 loss_valid_history = []
-epoch = 50
-optimizer = Adam(model.parameters(), lr=3e-4)
+epoch = 200
 # create_small_dataset(data_file="valid_X.csv", csv_name="small_X.csv")
 dataLoader = DataLoader('small_X.csv', batch_size=16, cat_exist=True, split=(90, 5, 5))
 
@@ -32,13 +40,15 @@ src_mask, tar_mask = get_mask(4 * CONST_LEN, random=False)
 # send src_mask, tar_mask to GPU
 src_mask, tar_mask = src_mask.to(device), tar_mask.to(device)
 
+print("re-start a previous training ... ")
+
 for k in range(epoch):
 
-    if k and k % 10 == 0:
-        checkpoint = {'model': Transformer(seq_len, channels, conv_k, dropout),
+    if k and k % 50 == 0:
+        checkpoint = {'model': Transformer(seq_len, channels, k, dropout),
                       'state_dict': model.state_dict(),
                       'optimizer' : optimizer.state_dict()}
-        torch.save(checkpoint, str(k)+'_'+'checkpoint.pth')
+        torch.save(checkpoint, str(k)+'_'+'checkpoint_re.pth')
 
     loss_train = []
     dataLoader.shuffle()
@@ -76,7 +86,7 @@ for k in range(epoch):
             cat, x, y = cat.to(device), x.to(device), y.to(device)
             valid_y = model.forward(cat, x, y, src_mask, tar_mask)
             valid_loss = compute_loss(valid_y, y, tar_mask)
-            # print("valid - check out: ", check_tensor([valid_loss]))
+            # print("train - check out: ", check_tensor([valid_loss]))
             loss_valid.append(valid_loss.item())
 
     loss_valid_history.append(np.mean(loss_valid))
