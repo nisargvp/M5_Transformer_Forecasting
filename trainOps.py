@@ -1,5 +1,6 @@
 import torch
 import pandas as pd
+import numpy as np
 from numpy.random import randint, shuffle
 
 CONST_LEN = 28
@@ -48,7 +49,7 @@ def create_small_dataset(data_file, csv_name="small_X.csv", size=1000):
 
 
 class DataLoader:
-    def __init__(self, data_file, batch_size=10, cat_exist=False, split=(8, 1, 1)):
+    def __init__(self, data_file, batch_size=10, cat_exist=False, split=(8, 1, 1), random_seed=12034):
 
         dat = pd.read_csv(data_file)
         self.n, _ = dat.shape
@@ -62,6 +63,8 @@ class DataLoader:
         # random shuffle dataset rows
         # then do train/valid/test split
         # categorical variables, numerical variables
+        # set a random_seed to memorize train/valid/test split
+        np.random.seed(random_seed)
         dat = dat.sample(frac=1).reset_index(drop=True)
         if not cat_exist:
             cat, self.dat = dat.iloc[:, :5], dat.iloc[:, 5:]
@@ -73,10 +76,10 @@ class DataLoader:
 
         self.train_dat = self.dat.iloc[:self.train_n*batch_size, :]
         mean = self.train_dat.mean(axis=0)
-        std = self.train_dat.std(axis=0)
-        std.replace(0.0, 1.0, inplace=True)
+        self.std_ = self.train_dat.std(axis=0)
+        self.std_.replace(0.0, 1.0, inplace=True)
         self.mean = mean.tolist()
-        self.std = std.tolist()
+        std = self.std_.tolist()
         self.train_dat = (self.train_dat - mean) / std
         self.train_cat = self.cat.iloc[:self.train_n*batch_size, :]
         # validation dataset
@@ -84,8 +87,8 @@ class DataLoader:
         self.valid_dat = (self.valid_dat - mean) / std
         self.valid_cat = self.cat.iloc[self.train_n*batch_size:(self.train_n + self.valid_n)*batch_size, :]
         # test dataset
-        self.test_dat = self.dat.iloc[(self.train_n + self.valid_n)*batch_size:, :]
-        self.test_dat = (self.test_dat - mean) / std
+        self.test_dat_ = self.dat.iloc[(self.train_n + self.valid_n)*batch_size:, :]
+        self.test_dat = (self.test_dat_ - mean) / std
         self.test_cat = self.cat.iloc[(self.train_n + self.valid_n)*batch_size:, :]
         # print(self.train_n, self.valid_n, self.test_n)
 
@@ -121,5 +124,14 @@ class DataLoader:
             l = self.test_cat.iloc[((i - 1) * self.batch_size):(i * self.batch_size), :]
             x = self.test_dat.iloc[((i - 1) * self.batch_size):(i * self.batch_size), :(4 * CONST_LEN)]
             y = self.test_dat.iloc[((i - 1) * self.batch_size):(i * self.batch_size), CONST_LEN:]
+            # print(l.shape, x.shape, y.shape)
+            yield torch.Tensor(l.to_numpy()), torch.Tensor(x.to_numpy()), torch.Tensor(y.to_numpy())
+
+    def get_original_test_batch(self):
+
+        for i in range(1, self.test_n):
+            l = self.test_cat.iloc[((i - 1) * self.batch_size):(i * self.batch_size), :]
+            x = self.test_dat_.iloc[((i - 1) * self.batch_size):(i * self.batch_size), :(4 * CONST_LEN)]
+            y = self.test_dat_.iloc[((i - 1) * self.batch_size):(i * self.batch_size), CONST_LEN:]
             # print(l.shape, x.shape, y.shape)
             yield torch.Tensor(l.to_numpy()), torch.Tensor(x.to_numpy()), torch.Tensor(y.to_numpy())
