@@ -77,9 +77,9 @@ class DataLoader:
         self.train_dat = self.dat.iloc[:self.train_n*batch_size, :]
         mean = self.train_dat.mean(axis=0)
         self.std_ = self.train_dat.std(axis=0)
-        self.std_.replace(0.0, 1.0, inplace=True)
+        std = self.std_.replace(0.0, 1.0, inplace=False)
         self.mean = mean.tolist()
-        std = self.std_.tolist()
+        std = std.tolist()
         self.train_dat = (self.train_dat - mean) / std
         self.train_cat = self.cat.iloc[:self.train_n*batch_size, :]
         # validation dataset
